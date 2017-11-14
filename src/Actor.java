@@ -3,7 +3,7 @@ public class Actor {
     public enum Direction { NORTH, SOUTH, EAST, WEST };
 
     // statuses that can be thrown for moveForward()
-    public enum ForwardError { SUCCESS, WALL, OUTBOUNDS, VISITED };
+    public enum ForwardStatus { SUCCESS, WALL, OUTBOUNDS, VISITED, BAD };
 
     // grid on which the actor lies
     Maze maze;
@@ -68,21 +68,21 @@ public class Actor {
     *   VISITED: was moving into a visited spot
     *
     *   @PARAMS:
-    *       boolean backTrace: allows the actor to move into visited space. */
-    public ForwardError moveForward(boolean moveVisited) {
+    *       boolean moveVisited: allows the actor to move into visited space. */
+    public ForwardStatus moveForward(boolean moveVisited) {
         switch (direction) {
             case NORTH:
                 if (y - 1 < 0) {
-                    return ForwardError.OUTBOUNDS;
+                    return ForwardStatus.OUTBOUNDS;
                 } else switch (maze.getCell(x, y - 1)) {
                     case WALL:
-                        return ForwardError.WALL;
+                        return ForwardStatus.WALL;
 
                     case VISITED:
                         if (moveVisited) {
                             y -= 1;
                         }
-                        else return ForwardError.VISITED;
+                        else return ForwardStatus.VISITED;
                         break;
 
                     case PATH:
@@ -92,16 +92,16 @@ public class Actor {
 
             case SOUTH:
                 if (y + 1 > maze.getHeight() - 1) {
-                    return ForwardError.OUTBOUNDS;
+                    return ForwardStatus.OUTBOUNDS;
                 } else switch (maze.getCell(x, y + 1)) {
                     case WALL:
-                        return ForwardError.WALL;
+                        return ForwardStatus.WALL;
 
                     case VISITED:
                         if (moveVisited) {
                             y += 1;
                         }
-                        else return ForwardError.VISITED;
+                        else return ForwardStatus.VISITED;
                         break;
 
                     case PATH:
@@ -111,16 +111,16 @@ public class Actor {
 
             case EAST:
                 if (x + 1 > maze.getWidth() - 1) {
-                    return ForwardError.OUTBOUNDS;
+                    return ForwardStatus.OUTBOUNDS;
                 } else switch (maze.getCell(x + 1, y)) {
                     case WALL:
-                        return ForwardError.WALL;
+                        return ForwardStatus.WALL;
 
                     case VISITED:
                         if (moveVisited) {
                             x += 1;
                         }
-                        else return ForwardError.VISITED;
+                        else return ForwardStatus.VISITED;
                         break;
 
                     case PATH:
@@ -130,16 +130,16 @@ public class Actor {
 
             case WEST:
                 if (x - 1 < 0) {
-                    return ForwardError.OUTBOUNDS;
+                    return ForwardStatus.OUTBOUNDS;
                 } else switch (maze.getCell(x - 1, y)) {
                     case WALL:
-                        return ForwardError.WALL;
+                        return ForwardStatus.WALL;
 
                     case VISITED:
                         if (moveVisited) {
                             x -= 1;
                         }
-                        else return ForwardError.VISITED;
+                        else return ForwardStatus.VISITED;
                         break;
 
                     case PATH:
@@ -149,8 +149,11 @@ public class Actor {
         }
 
         maze.update();
-        return ForwardError.SUCCESS;
+        return ForwardStatus.SUCCESS;
     }
+
+    /* accessor for backtracing status */
+    public boolean isBacktracing() { return backTrace; }
 
     /* accessor and mutator for the actor direction */
     public void setDirection(Direction direction)   { this.direction = direction; }
@@ -198,22 +201,37 @@ public class Actor {
         int i = 0;
 
         if (!backTrace) {
-            while (i < 4 && moveForward(moveVisited) != ForwardError.SUCCESS) {
+            while (i < 4 && moveForward(moveVisited) != ForwardStatus.SUCCESS) {
                 turnCW();
                 i++;
+            }
+
+            // start going backwards if reached dead end
+            if ( i == 4 ) {
+                for (int j = 0; j < 2; j++) turnCW();
+                backTrace = true;
+                takeStep(backTrace);
             }
         } else {
-            while (i < 3 && moveForward(moveVisited) != ForwardError.SUCCESS) {
+            // actor is going backwards, and can move through visited cells.
+            // however, the actor must check all sides except behind to find a spot it has not yet visited before
+            // continuing.
+            if (moveForward(false) == ForwardStatus.SUCCESS)
+                backTrace = false;
+            else {
                 turnCW();
-                i++;
+                if (moveForward(false) == ForwardStatus.SUCCESS) {
+                    backTrace = false;
+                } else {
+                    turnCW(); turnCW();
+                    if (moveForward(false) == ForwardStatus.SUCCESS)
+                        backTrace = false;
+                    else {
+                        turnCW();
+                        if (moveForward(true) != ForwardStatus.SUCCESS);
+                    }
+                }
             }
-        }
-
-        // start going backwards if reached dead end
-        if ( i == 4 ) {
-            for (int j = 0; j < 2; j++) turnCW();
-            backTrace = true;
-            takeStep(backTrace);
         }
     }
 

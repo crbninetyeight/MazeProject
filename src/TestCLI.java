@@ -24,9 +24,11 @@ public class TestCLI {
         Actor actor = maze.getActor();
         System.out.println(maze);
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 150; i++) {
             actor.takeStep();
             System.out.println(maze);
         }
+
+        System.out.println(maze);
     }
 }

@@ -1,6 +1,6 @@
 public class Maze {
     public enum Cell {
-        PATH, WALL, VISITED, ACTOR
+        PATH, WALL, VISITED, BAD, ACTOR
     }
 
     private Cell[][] cellList;
@@ -54,6 +54,9 @@ public class Maze {
                 case VISITED:
                     string = string.concat("~");
                     break;
+                case BAD:
+                    string = string.concat("x");
+                    break;
                 case ACTOR:
                     string = string.concat("@");
                     break;
@@ -91,7 +94,7 @@ public class Maze {
     public void update() {
         if (actor.isPositionChanged()) {
             cellList[actor.lastPositionY()][actor.lastPositionX()] =
-                    (getCell(actor.getPositionX(), actor.getPositionY()) == Cell.VISITED) ? Cell.PATH : Cell.VISITED;
+                    (getCell(actor.getPositionX(), actor.getPositionY()) == Cell.VISITED) ? Cell.BAD : Cell.VISITED;
             cellList[actor.getPositionY()][actor.getPositionX()] = Cell.ACTOR;
             actor.flush();
         }
