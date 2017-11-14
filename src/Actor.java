@@ -17,12 +17,16 @@ public class Actor {
     // actor position on the grid in the last step
     private int lastX, lastY;
 
-    public boolean backTrace;
+    private boolean backTrace;
+    private boolean exhausted;
+    private boolean foundExit;
 
     public Actor(int x, int y) {
-        direction = Direction.NORTH;
+        direction = Direction.SOUTH;
+        foundExit = false;
 
         backTrace = false;
+        exhausted = false;
 
         this.maze = null;
 
@@ -33,9 +37,13 @@ public class Actor {
     }
 
     public Actor(Maze maze, int x, int y) {
+        direction = Direction.SOUTH;
+        foundExit = false;
+
         this.maze = maze;
 
         backTrace = false;
+        exhausted = false;
 
         this.x = x;
         this.y = y;
@@ -198,39 +206,50 @@ public class Actor {
     }
 
     public void takeStep(boolean moveVisited) {
-        int i = 0;
+        if (!foundExit) {
+            int i = 0;
 
-        if (!backTrace) {
-            while (i < 4 && moveForward(moveVisited) != ForwardStatus.SUCCESS) {
+            if (!backTrace) {
                 turnCW();
-                i++;
-            }
+                if (moveForward(false) != ForwardStatus.SUCCESS)
+                    if (moveForward(false) == ForwardStatus.OUTBOUNDS) foundExit = true;
+                        else {
+                            turnCCW();
+                            while (i < 4 && moveForward(false) != ForwardStatus.SUCCESS) {
+                                turnCW();
+                                i++;
+                            }
 
-            // start going backwards if reached dead end
-            if ( i == 4 ) {
-                for (int j = 0; j < 2; j++) turnCW();
-                backTrace = true;
-                takeStep(backTrace);
-            }
-        } else {
-            // actor is going backwards, and can move through visited cells.
-            // however, the actor must check all sides except behind to find a spot it has not yet visited before
-            // continuing.
-            if (moveForward(false) == ForwardStatus.SUCCESS)
-                backTrace = false;
-            else {
-                turnCW();
-                if (moveForward(false) == ForwardStatus.SUCCESS) {
+                            // start going backwards if reached dead end
+                            if ( i == 4 ) {
+                                for (int j = 0; j < 2; j++) turnCW();
+                                backTrace = true;
+                                takeStep(backTrace);
+                            }
+                        }
+            } else if (!exhausted) {
+                // actor is going backwards, and may travel through visited cells.
+                // however, the actor must check all sides except behind to find a spot it has not yet visited before
+                // doing so.
+                if (moveForward(false) == ForwardStatus.SUCCESS)
                     backTrace = false;
-                } else {
-                    turnCW(); turnCW();
-                    if (moveForward(false) == ForwardStatus.SUCCESS)
+                else {
+                    turnCW();
+                    if (moveForward(false) == ForwardStatus.SUCCESS) {
                         backTrace = false;
-                    else {
-                        turnCW();
-                        if (moveForward(true) != ForwardStatus.SUCCESS);
+                    } else {
+                        turnCW(); turnCW();
+                        if (moveForward(false) == ForwardStatus.SUCCESS)
+                            backTrace = false;
+                        else {
+                            turnCW();
+                            if (moveForward(true) != ForwardStatus.SUCCESS)
+                                exhausted = true;
+                        }
                     }
                 }
+            } else {
+                //
             }
         }
     }
